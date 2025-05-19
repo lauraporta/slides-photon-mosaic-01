@@ -1,111 +1,266 @@
 ---
-title: A template presentation
-subtitle: so much fun
-author: SWC Neuroinformatics Unit
-execute: 
+title: photon-mosaic
+subtitle: Progress, Workflow, and UI Ideas
+author: Laura Porta
+execute:
   enabled: true
 format:
-    revealjs:
-        theme: [default, niu-dark.scss]
-        logo: img/logo_niu_dark.png
-        footer: "Edit this footer | 2023-07-26"
-        slide-number: c
-        menu:
-            numbers: true
-        chalkboard: true
-        scrollable: true
-        preview-links: false
-        view-distance: 10
-        mobile-view-distance: 10
-        auto-animate: true
-        auto-play-media: true
-        code-overflow: wrap
-        highlight-style: atom-one
-        mermaid: 
-          theme: neutral
-          fontFamily: arial
-          curve: linear
-    html:
-        theme: [default, niu-dark.scss]
-        logo: img/logo_niu_dark.png
-        date: "2023-07-05"
-        toc: true
-        code-overflow: scroll
-        highlight-style: atom-one
-        mermaid: 
-          theme: neutral
-          fontFamily: arial
-          curve: linear
-          margin-left: 0
-        embed-resources: true
-        page-layout: full
-my-custom-stuff:
-   my-reuseable-variable: "I can use this wherever I want in the markdown, and change it in only once place :)"
+  revealjs:
+    theme: [default, niu-dark.scss]
+    logo: img/logo_niu_dark.png
+    footer: "photon-mosaic dev | 2025-05-19"
+    slide-number: c
+    menu:
+      numbers: true
+    chalkboard: true
+    scrollable: true
+    preview-links: false
+    view-distance: 10
+    mobile-view-distance: 10
+    auto-animate: true
+    auto-play-media: true
+    code-overflow: wrap
+    highlight-style: atom-one
+    mermaid:
+      theme: neutral
+      fontFamily: arial
+      curve: linear
+  html:
+    theme: [default, niu-dark.scss]
+    logo: img/logo_niu_dark.png
+    date: "2025-05-19"
+    toc: true
+    code-overflow: scroll
+    highlight-style: atom-one
+    mermaid:
+      theme: neutral
+      fontFamily: arial
+      curve: linear
+      margin-left: 0
+    embed-resources: true
+    page-layout: full         
 ---
 
-## Contents
+## Project summary
 
-Some example slides - [also look at example RevealJS slides in the Quarto docs](https://quarto.org/docs/presentations/revealjs/)
+`photon-mosaic` is a pipeline and toolkit for automating preprocessing of 2p and 3p calcium imaging data.
 
-* Non-executable and executable code-blocks
-* bullet points with highlighting 
-* two-column slides 
-* how to include a slide from a separate MD file
-* preview and link to a webpage
+It was designed to:
 
-## Just a code block, nothing gets executed...
+* Standardize steps like derotation, contrast adjustment, suite2p, etc.
+* Enable reproducibility via Snakemake
+* Be modular and extensible
+* Reduce manual clicks for common workflows
 
-... but there is some fancy highlighting
+---
 
-```{.python code-line-numbers="1|3|4-9"}
-from pathlib import Path
+## Current Status
 
-home_path = Path.home()
-if home_path.exists():
-  data_path = home_path / "data"
-else:
-  pass
-  # raise some error maybe?
+* ✅ Read/write modules for structured folder input
+* ✅ Derotation preprocessing steps
+* ✅ Suite2p integration (via Snakemake rules)
+* 🧪 Tests for core components
+* 📄 Docs with `sphinx` and embedded Markdown
+* ⏳ Idea for interactive terminal UI in progress
+
+---
+
+## Why Snakemake?
+
+Snakemake helps automate reproducible workflows.
+
+Instead of writing:
+
+```bash
+python step1.py && python step2.py && ...
 ```
 
-## A code block that's actually executed at render-time
+You declare:
 
-```{python}
-#| echo: true
-#| code-fold: true
-
-from pathlib import Path
-
-print("Hello world")
+```yaml
+rule derotate:
+  input: "raw.tif"
+  output: "derotated.tif"
+  shell: "python derotate.py {input} {output}"
 ```
 
-## You can execute code without showing that you have by using #|echo: false
-```{python}
-#| echo: false
+Snakemake tracks dependencies & reruns only what changed.
 
-from pathlib import Path
+---
 
-print("Hello world")
+## Snakemake = DAG of Tasks
+
+Each rule specifies:
+
+* Inputs: files that must exist before running
+* Outputs: files produced by the rule
+* Scripts: that do the actual work
+
+---
+
+## Snakemake = DAG of Tasks
+
+Snakemake builds a **DAG** (Directed Acyclic Graph) from these dependencies.
+
+```{mermaid}
+flowchart LR
+  raw["raw.tif"] --> derotate
+  derotate --> derotated["derotated.tif"]
+  derotated --> suite2p
+  suite2p --> suite2p_out["suite2p/output"]
 ```
 
-{{< include slides/extra_slide.qmd >}}
+Only changed or missing outputs will be recomputed.
 
-## An example image
+---
 
-Include an image:
+## Enforcing a Shared Folder Structure
 
-![](img/bg_logo_wide.png){width=900 fig-align=center}
+We follow the [**NeuroBlueprint**](https://github.com/SainsburyWellcomeCentre/neuro-blueprint) data standard.
 
+NeuroBlueprint defines:
 
-## Link and a preview a webpage:
+* `rawdata/` and `derivatives/` as top-level folders
+* Hierarchical subject/session/datatype levels
+* Standard naming for folders (e.g. `sub-001_ses-01_date-YYYYMMDD`)
+* Clear separation of raw vs processed data
 
-::: {style="text-align: center; margin-top: 1em"}
-[interoperable Python-based tools for computational neuroanatomy](https://brainglobe.info/index.html){preview-link="true" style="text-align: center"}
-:::
+This ensures that:
 
-## Use a variable several times
+* Pipelines work consistently across labs
+* Data remains readable and parseable
+* Custom metadata remains attached to each subject/session
 
-Variables defined in the metadata is re-useable anywhere
+```{mermaid}
+flowchart TD
+  A[project/] --> B1[rawdata/]
+  A --> B2[derivatives/]
+  B1 --> C1[sub-001/]
+  C1 --> D1[ses-01/]
+  D1 --> E1[funcimg/]
+```
 
-* {{< meta my-custom-stuff.my-reuseable-variable >}}
-* {{< meta my-custom-stuff.my-reuseable-variable >}}
+---
+
+## How NeuroBlueprint Is Used in Snakemake
+
+We dynamically generate Snakemake `input` and `output` targets from the NeuroBlueprint structure:
+
+```python
+preprocessed_outputs = [
+  processed_data_base / f"sub-{i}_{new}" / f"ses-{j}" / "funcimg" / f"{name}.tif"
+  for i, (_, new) in enumerate(dataset_pairs)
+  for j, name in enumerate(output_patterns)
+]
+```
+
+This keeps your Snakefile **decoupled from hardcoded paths**, and ensures output files remain BIDS-like.
+
+---
+
+## Modular Design
+
+Each step is a module with inputs/outputs.
+
+```{mermaid}
+flowchart TD
+  subgraph Modules
+    A1[reader]
+    B1[preprocessing]
+    C1[suite2p]
+    D1[postprocessing]
+  end
+
+  A1 --> B1 --> C1 --> D1
+```
+
+Modularity allows:
+
+* Clear function boundaries
+* Unit testing
+* User extension
+
+---
+
+## Snakemake Rule Example
+
+```python
+rule suite2p:
+  input:
+    tiff=lambda wc: str(...)
+  output:
+    F=".../F.npy",
+    bin=".../data.bin"
+  run:
+    run_suite2p(input.tiff, output.F, output.bin, ...)
+```
+
+This uses logic and config patterns to determine filenames from the folder structure.
+
+---
+
+## Challenge: Complexity for Users 😓
+
+Snakemake is powerful... but YAML, paths, and rule syntax can scare users.
+
+* Hard to onboard new users
+* Many researchers prefer GUIs or simple CLI tools
+* Need a gentler interface
+
+---
+
+## Proposed Solution: Terminal UI
+
+A TUI (terminal user interface) could help:
+
+* Select pipeline steps interactively
+* Auto-generate Snakemake config
+* Submit jobs or monitor execution
+* Debug failed rules with context
+
+---
+
+## TUI Concept Sketch
+
+```{mermaid}
+flowchart TD
+  A[User launches tui] --> B[Select modules]
+  B --> C[Configure paths]
+  C --> D[Preview DAG]
+  D --> E[Launch Snakemake]
+  E --> F[Live status + logs]
+```
+
+---
+
+## Feature: Add Custom User Scripts
+
+In the TUI, we could let users:
+
+1. Select a `.py` or `.sh` file
+2. Specify input/output pattern
+3. Register it as a new step
+
+```{mermaid}  
+flowchart LR
+  raw --> derotate --> custom["user_script.py"] --> suite2p
+```
+
+This allows non-developers to integrate their analysis into the pipeline **without editing Snakefiles manually**.
+
+---
+
+## What's Next?
+
+* [ ] Decide on TUI framework (`textual`, `prompt_toolkit`, etc.)
+* [ ] Add dry-run validation
+* [ ] Improve logging/debugging
+* [ ] Add optional GUI export?
+
+---
+
+## Thanks!
+
+📦 [`photon-mosaic`](https://github.com/your-org/photon-mosaic)
+📚 Docs coming soon
+💬 Let's discuss feedback, bottlenecks, and next steps!
