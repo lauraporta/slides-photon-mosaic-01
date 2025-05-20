@@ -43,25 +43,25 @@ format:
 
 ## Project summary
 
-`photon-mosaic` is a pipeline and toolkit for automating preprocessing of 2p and 3p calcium imaging data.
+`photon-mosaic` is a pipeline and toolkit for automating preprocessing of multi-photon calcium imaging data.
 
 It was designed to:
 
-* Standardize steps like derotation, contrast adjustment, suite2p, etc.
+* Standardize steps like contrast adjustment, suite2p, neuropil correction, etc.
 * Enable reproducibility via Snakemake
 * Be modular and extensible
-* Reduce manual clicks for common workflows
+* Reduce manual clicks 
 
 ---
 
 ## Current Status
 
-* ✅ Read/write modules for structured folder input
-* ✅ Derotation preprocessing steps
 * ✅ Suite2p integration (via Snakemake rules)
-* 🧪 Tests for core components
-* 📄 Docs with `sphinx` and embedded Markdown
-* ⏳ Idea for interactive terminal UI in progress
+* ✅ Tests for core components
+* ✅ Docs with `sphinx`
+* ☑️ Read arbitrary folder structure
+* ☑️ Preprocessing steps 
+* 💡 Idea for interactive terminal UI in progress
 
 ---
 
@@ -84,7 +84,17 @@ rule derotate:
   shell: "python derotate.py {input} {output}"
 ```
 
+---
+
+## Why Snakemake?
+
 Snakemake tracks dependencies & reruns only what changed.
+
+What could change?  
+
+* Input files  
+* Parameters  
+* Code  
 
 ---
 
@@ -104,81 +114,39 @@ Snakemake builds a **DAG** (Directed Acyclic Graph) from these dependencies.
 
 ```{mermaid}
 flowchart LR
-  raw["raw.tif"] --> derotate
-  derotate --> derotated["derotated.tif"]
-  derotated --> suite2p
-  suite2p --> suite2p_out["suite2p/output"]
+  raw["raw.tif"] --> derotated["derotated.tif"]
+  derotated --> suite2p_out["F.npy"]
+  suite2p_out --> postprocessed["delta_f_over_f.npy"]
 ```
 
 Only changed or missing outputs will be recomputed.
 
 ---
 
-## Enforcing a Shared Folder Structure
+## Modular Design
 
-We follow the [**NeuroBlueprint**](https://github.com/SainsburyWellcomeCentre/neuro-blueprint) data standard.
-
-NeuroBlueprint defines:
-
-* `rawdata/` and `derivatives/` as top-level folders
-* Hierarchical subject/session/datatype levels
-* Standard naming for folders (e.g. `sub-001_ses-01_date-YYYYMMDD`)
-* Clear separation of raw vs processed data
-
-This ensures that:
-
-* Pipelines work consistently across labs
-* Data remains readable and parseable
-* Custom metadata remains attached to each subject/session
+Organization of photon-mosaic:
 
 ```{mermaid}
 flowchart TD
-  A[project/] --> B1[rawdata/]
-  A --> B2[derivatives/]
-  B1 --> C1[sub-001/]
-  C1 --> D1[ses-01/]
-  D1 --> E1[funcimg/]
+  A1[dataset discovery]
+  B1[rule: preprocessing]
+  C1[rule: suite2p]
+  D1[rule: postprocessing]
+
+  A1 --> B1 --> C1 --> D1
 ```
-
----
-
-## How NeuroBlueprint Is Used in Snakemake
-
-We dynamically generate Snakemake `input` and `output` targets from the NeuroBlueprint structure:
-
-```python
-preprocessed_outputs = [
-  processed_data_base / f"sub-{i}_{new}" / f"ses-{j}" / "funcimg" / f"{name}.tif"
-  for i, (_, new) in enumerate(dataset_pairs)
-  for j, name in enumerate(output_patterns)
-]
-```
-
-This keeps your Snakefile **decoupled from hardcoded paths**, and ensures output files remain BIDS-like.
 
 ---
 
 ## Modular Design
 
-Each step is a module with inputs/outputs.
+Flexible rules via "registration" of different functions:
 
-```{mermaid}
-flowchart TD
-  subgraph Modules
-    A1[reader]
-    B1[preprocessing]
-    C1[suite2p]
-    D1[postprocessing]
-  end
+* preprocessing: derotation, contrast enhancement, etc.
+* postprocessing: detrending, neuropil correction, etc.
 
-  A1 --> B1 --> C1 --> D1
-```
-
-Modularity allows:
-
-* Clear function boundaries
-* Unit testing
-* User extension
++ user-defined functions
 
 ---
 
@@ -197,9 +165,86 @@ rule suite2p:
 
 This uses logic and config patterns to determine filenames from the folder structure.
 
+
 ---
 
-## Challenge: Complexity for Users 😓
+## Example construction of a DAG and run
+
+Force run the `preprocessing` rule triggers the following DAG:
+
+```
+job              count
+-------------  -------
+all                  1
+preprocessing       40
+suite2p             40
+total               81
+
+Reasons:
+    (check individual jobs above for details)
+    forced:
+        preprocessing
+    input files updated by another job:
+        all, suite2p
+```
+
+---
+
+## Enforcing a Shared Folder Structure
+
+We follow the [**NeuroBlueprint**](https://github.com/SainsburyWellcomeCentre/neuro-blueprint) data standard when writing our Snakemake rules.
+
+* Can read from any folder structure using glob patterns to find your dataset folders and tiff files
+* But enforces a specific output folder structure
+
+---
+
+## Output Standardization
+
+* Enforces the standard folder hierarchy:
+  * `derivatives/` for processed data
+  * `sub-XXX/` for subjects
+  * `ses-YY/` for sessions
+  * `funcimg/` for functional imaging data
+
+---
+
+## Implementation
+
+```python
+# Dynamic path generation in Snakemake rules
+processed_data_base / f"sub-{i}_{new}" / f"ses-{j}" / "funcimg" / f"{name}.tif"
+```
+
+This approach:
+
+* Keeps your Snakefile clean and maintainable
+* Makes outputs consistent and predictable
+* Enables easy integration with other tools
+
+---
+
+## Example derivatives folder
+
+```
+sub-0_230801CAA1120181
+└── ses-0
+    └── funcimg
+        ├── derotated_full.tif
+        └── suite2p
+            └── plane0
+                ├── F.npy
+                └── ...
+└── ses-1
+    └── ...
+sub-1_230802CAA1120182
+└── ses-0
+    └── ...
+└── ses-1
+    └── ...
+```
+
+## Challenge: Complexity for Users 
 
 Snakemake is powerful... but YAML, paths, and rule syntax can scare users.
 
@@ -213,8 +258,9 @@ Snakemake is powerful... but YAML, paths, and rule syntax can scare users.
 
 A TUI (terminal user interface) could help:
 
+* Connect to the cluster
 * Select pipeline steps interactively
-* Auto-generate Snakemake config
+* Auto-generate Snakemake config and edit it
 * Submit jobs or monitor execution
 * Debug failed rules with context
 
@@ -243,7 +289,7 @@ In the TUI, we could let users:
 
 ```{mermaid}  
 flowchart LR
-  raw --> derotate --> custom["user_script.py"] --> suite2p
+  raw --> contrast_enhancement --> suite2p --> get_df_over_f -->custom["make_figures.py"]
 ```
 
 This allows non-developers to integrate their analysis into the pipeline **without editing Snakefiles manually**.
@@ -252,15 +298,62 @@ This allows non-developers to integrate their analysis into the pipeline **witho
 
 ## What's Next?
 
-* [ ] Decide on TUI framework (`textual`, `prompt_toolkit`, etc.)
-* [ ] Add dry-run validation
-* [ ] Improve logging/debugging
-* [ ] Add optional GUI export?
+* [ ] Complete PR with preprocessing steps and dataset discovery
+* [ ] Make a TUI
+* [ ] Reformulate the docs
+* [ ] Add postprocessing steps
 
 ---
 
 ## Thanks!
 
-📦 [`photon-mosaic`](https://github.com/your-org/photon-mosaic)
-📚 Docs coming soon
-💬 Let's discuss feedback, bottlenecks, and next steps!
+📦 [`photon-mosaic`](https://github.com/your-org/photon-mosaic)  
+📊 TUI coming soon  
+💬 Let's discuss feedback, bottlenecks, and next steps!  
+
+---
+
+# Appendix
+
+Building with ChatGPT and Cursor.
+
+---
+
+## Learning, Drafting, and Prototyping
+
+LLMs accelerated my work on *photon-mosaic* by:
+
+1. **Learning through conversation**  
+   - e.g. prompted ideas on how to register preprocessing steps  
+
+2. **Generating boilerplate from structure**  
+   - turned documentaion folder notes into a draft Quarto presentation  
+
+3. **From sketch to script**  
+   - pen-and-paper ideas → prompt draft (ChatGPT) → Cursor-almost-ready script  
+
+---
+
+## But There Are Limits…
+
+LLMs struggle as complexity grows:
+
+- **Snakemake integration**  
+  - Spent hours debugging path resolution across rules  
+  - LLM hallucinated or misunderstood rule linking
+
+- **Custom scripts**  
+  - LLMs helped draft but failed in having a deep understanding of the core scientific problem
+  - Bottleneck: *my own understanding of edge cases + ability to guide it precisely*
+
+→ LLMs are fast but not deep (yet)
+
+---
+
+## What's the Future of Development?
+
+- What is the best use of our time when using LLMs?
+- How can we build more better and faster tools by leveraging LLMs?
+- How has your workflow changed since using LLMs?
+
+---
