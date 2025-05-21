@@ -51,17 +51,11 @@ It was designed to:
 * Enable reproducibility via Snakemake
 * Be modular and extensible
 * Reduce manual clicks 
-
 ---
 
-## Current Status
+## What I want to generalise?
 
-* ✅ Suite2p integration (via Snakemake rules)
-* ✅ Tests for core components
-* ✅ Docs with `sphinx`
-* ☑️ Read arbitrary folder structure
-* ☑️ Preprocessing steps 
-* 💡 Idea for interactive terminal UI in progress
+![Estimated number of clicks per processing step per dataset: 5-30](img/manual_pipeline.png){fig-align="center"}
 
 ---
 
@@ -112,30 +106,13 @@ Each rule specifies:
 
 Snakemake builds a **DAG** (Directed Acyclic Graph) from these dependencies.
 
-```{mermaid}
-flowchart LR
-  raw["raw.tif"] --> derotated["derotated.tif"]
-  derotated --> suite2p_out["F.npy"]
-  suite2p_out --> postprocessed["delta_f_over_f.npy"]
-```
-
-Only changed or missing outputs will be recomputed.
+![Only changed or missing outputs will be recomputed.](img/DAG.png){fig-align="center"}
 
 ---
 
 ## Modular Design
 
-Organization of photon-mosaic:
-
-```{mermaid}
-flowchart TD
-  A1[dataset discovery]
-  B1[rule: preprocessing]
-  C1[rule: suite2p]
-  D1[rule: postprocessing]
-
-  A1 --> B1 --> C1 --> D1
-```
+![Organization of photon-mosaic](img/photon_mosaic.png){fig-align="center"}
 
 ---
 
@@ -243,6 +220,19 @@ sub-1_230802CAA1120182
 └── ses-1
     └── ...
 ```
+---
+
+## Current Status
+
+* ✅ Every step launches a job on the cluster
+* ✅ Suite2p integration (via Snakemake rules)
+* ✅ Tests for core components
+* ✅ Docs with `sphinx`
+* ☑️ Read arbitrary folder structure
+* ☑️ Preprocessing steps 
+* 💡 Idea for interactive terminal UI in progress
+
+---
 
 ## Challenge: Complexity for Users 
 
@@ -258,24 +248,11 @@ Snakemake is powerful... but YAML, paths, and rule syntax can scare users.
 
 A TUI (terminal user interface) could help:
 
-* Connect to the cluster
+* Connect to the cluster 🤔
 * Select pipeline steps interactively
 * Auto-generate Snakemake config and edit it
 * Submit jobs or monitor execution
 * Debug failed rules with context
-
----
-
-## TUI Concept Sketch
-
-```{mermaid}
-flowchart TD
-  A[User launches tui] --> B[Select modules]
-  B --> C[Configure paths]
-  C --> D[Preview DAG]
-  D --> E[Launch Snakemake]
-  E --> F[Live status + logs]
-```
 
 ---
 
@@ -288,6 +265,12 @@ In the TUI, we could let users:
 3. Register it as a new step
 
 This allows non-developers to integrate their analysis into the pipeline **without editing Snakefiles manually**.
+
+---
+
+## TUI Concept Sketch
+
+![Possible TUI](img/TUI_draft.svg){fig-align="center"}
 
 ---
 
