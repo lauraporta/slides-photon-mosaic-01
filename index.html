@@ -190,10 +190,6 @@
       margin-right: 0; 
     }
   </style>
-  <meta name="mermaid-theme" content="neutral">
-  <script src="index_files/libs/quarto-diagram/mermaid.min.js"></script>
-  <script src="index_files/libs/quarto-diagram/mermaid-init.js"></script>
-  <link href="index_files/libs/quarto-diagram/mermaid.css" rel="stylesheet">
 </head>
 <body class="quarto-dark">
   <div class="reveal">
@@ -220,20 +216,13 @@ Laura Porta
 <li>Standardize steps like contrast adjustment, suite2p, neuropil correction, etc.</li>
 <li>Enable reproducibility via Snakemake</li>
 <li>Be modular and extensible</li>
-<li>Reduce manual clicks</li>
+<li><h2 id="reduce-manual-clicks">Reduce manual clicks</h2></li>
 </ul>
 </section>
-<section id="current-status" class="slide level2">
-<h2>Current Status</h2>
-<ul>
-<li>✅ Suite2p integration (via Snakemake rules)</li>
-<li>✅ Tests for core components</li>
-<li>✅ Docs with <code>sphinx</code></li>
-<li>☑️ Read arbitrary folder structure</li>
-<li>☑️ Preprocessing steps</li>
-<li>💡 Idea for interactive terminal UI in progress</li>
-</ul>
-</section>
+<section id="what-i-want-to-generalise" class="slide level2">
+<h2>What I want to generalise?</h2>
+
+<img data-src="img/manual_pipeline.png" class="r-stretch quarto-figure-center"><p class="caption">Estimated number of clicks per processing step per dataset: 5-30</p></section>
 <section id="why-snakemake" class="slide level2">
 <h2>Why Snakemake?</h2>
 <p>Snakemake helps automate reproducible workflows.</p>
@@ -269,45 +258,12 @@ Laura Porta
 <section id="snakemake-dag-of-tasks-1" class="slide level2">
 <h2>Snakemake = DAG of Tasks</h2>
 <p>Snakemake builds a <strong>DAG</strong> (Directed Acyclic Graph) from these dependencies.</p>
-<div class="cell" data-reveal="true" data-layout-align="default">
-<div class="cell-output-display">
-<div>
-<p></p><figure class=""><p></p>
-<div>
-<pre class="mermaid mermaid-js">flowchart LR
-  raw["raw.tif"] --&gt; derotated["derotated.tif"]
-  derotated --&gt; suite2p_out["F.npy"]
-  suite2p_out --&gt; postprocessed["delta_f_over_f.npy"]
-</pre>
-</div>
-<p></p></figure><p></p>
-</div>
-</div>
-</div>
-<p>Only changed or missing outputs will be recomputed.</p>
-</section>
+
+<img data-src="img/DAG.png" class="r-stretch quarto-figure-center"><p class="caption">Only changed or missing outputs will be recomputed.</p></section>
 <section id="modular-design" class="slide level2">
 <h2>Modular Design</h2>
-<p>Organization of photon-mosaic:</p>
-<div class="cell" data-reveal="true" data-layout-align="default">
-<div class="cell-output-display">
-<div>
-<p></p><figure class=""><p></p>
-<div>
-<pre class="mermaid mermaid-js">flowchart TD
-  A1[dataset discovery]
-  B1[rule: preprocessing]
-  C1[rule: suite2p]
-  D1[rule: postprocessing]
 
-  A1 --&gt; B1 --&gt; C1 --&gt; D1
-</pre>
-</div>
-<p></p></figure><p></p>
-</div>
-</div>
-</div>
-</section>
+<img data-src="img/photon_mosaic.png" class="r-stretch quarto-figure-center"><p class="caption">Organization of photon-mosaic</p></section>
 <section id="modular-design-1" class="slide level2">
 <h2>Modular Design</h2>
 <p>Flexible rules via “registration” of different functions:</p>
@@ -395,6 +351,18 @@ sub-1_230802CAA1120182
 └── ses-1
     └── ...</code></pre>
 </section>
+<section id="current-status" class="slide level2">
+<h2>Current Status</h2>
+<ul>
+<li>✅ Every step launches a job on the cluster</li>
+<li>✅ Suite2p integration (via Snakemake rules)</li>
+<li>✅ Tests for core components</li>
+<li>✅ Docs with <code>sphinx</code></li>
+<li>☑️ Read arbitrary folder structure</li>
+<li>☑️ Preprocessing steps</li>
+<li>💡 Idea for interactive terminal UI in progress</li>
+</ul>
+</section>
 <section id="challenge-complexity-for-users" class="slide level2">
 <h2>Challenge: Complexity for Users</h2>
 <p>Snakemake is powerful… but YAML, paths, and rule syntax can scare users.</p>
@@ -408,32 +376,12 @@ sub-1_230802CAA1120182
 <h2>Proposed Solution: Terminal UI</h2>
 <p>A TUI (terminal user interface) could help:</p>
 <ul>
-<li>Connect to the cluster</li>
+<li>Connect to the cluster 🤔</li>
 <li>Select pipeline steps interactively</li>
 <li>Auto-generate Snakemake config and edit it</li>
 <li>Submit jobs or monitor execution</li>
 <li>Debug failed rules with context</li>
 </ul>
-</section>
-<section id="tui-concept-sketch" class="slide level2">
-<h2>TUI Concept Sketch</h2>
-<div class="cell" data-reveal="true" data-layout-align="default">
-<div class="cell-output-display">
-<div>
-<p></p><figure class=""><p></p>
-<div>
-<pre class="mermaid mermaid-js">flowchart TD
-  A[User launches tui] --&gt; B[Select modules]
-  B --&gt; C[Configure paths]
-  C --&gt; D[Preview DAG]
-  D --&gt; E[Launch Snakemake]
-  E --&gt; F[Live status + logs]
-</pre>
-</div>
-<p></p></figure><p></p>
-</div>
-</div>
-</div>
 </section>
 <section id="feature-add-custom-user-scripts" class="slide level2 scrollable">
 <h2>Feature: Add Custom User Scripts</h2>
@@ -445,6 +393,10 @@ sub-1_230802CAA1120182
 </ol>
 <p>This allows non-developers to integrate their analysis into the pipeline <strong>without editing Snakefiles manually</strong>.</p>
 </section>
+<section id="tui-concept-sketch" class="slide level2">
+<h2>TUI Concept Sketch</h2>
+
+<img data-src="img/TUI_draft.svg" class="r-stretch quarto-figure-center"><p class="caption">Possible TUI</p></section>
 <section id="whats-next" class="slide level2">
 <h2>What’s Next?</h2>
 <ul class="task-list">
