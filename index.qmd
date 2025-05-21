@@ -1,6 +1,6 @@
 ---
 title: photon-mosaic
-subtitle: Progress, Workflow, and UI Ideas
+subtitle: Progress, UI Ideas and dev strategies
 author: Laura Porta
 execute:
   enabled: true
@@ -287,11 +287,6 @@ In the TUI, we could let users:
 2. Specify input/output pattern
 3. Register it as a new step
 
-```{mermaid}  
-flowchart LR
-  raw --> contrast_enhancement --> suite2p --> get_df_over_f -->custom["make_figures.py"]
-```
-
 This allows non-developers to integrate their analysis into the pipeline **without editing Snakefiles manually**.
 
 ---
@@ -307,9 +302,7 @@ This allows non-developers to integrate their analysis into the pipeline **witho
 
 ## Thanks!
 
-📦 [`photon-mosaic`](https://github.com/your-org/photon-mosaic)  
-📊 TUI coming soon  
-💬 Let's discuss feedback, bottlenecks, and next steps!  
+📦 [`photon-mosaic`](https://github.com/neuroinformatics-unit/photon-mosaic)  
 
 ---
 
@@ -346,14 +339,14 @@ LLMs struggle as complexity grows:
   - LLMs helped draft but failed in having a deep understanding of the core scientific problem
   - Bottleneck: *my own understanding of edge cases + ability to guide it precisely*
 
-→ LLMs are fast but not deep (yet)
+- Surprisingly poor at refactoring and understanding changes in code  
 
 ---
 
 ## What's the Future of Development?
 
-- What is the best use of our time when using LLMs?
+- After how long should I stop explaining to an LLM what I want?
 - How can we build more better and faster tools by leveraging LLMs?
-- How has your workflow changed since using LLMs?
+- How has your workflow changed?
 
 ---

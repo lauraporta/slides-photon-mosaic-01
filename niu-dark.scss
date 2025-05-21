@@ -6,3 +6,11 @@ $link-color: #04B46D !default;
 $font-family-sans-serif: arial, "open sans", "helvetica neue", helvetica, sans-serif !default;
 $mermaid-font-family: arial;
 /*-- scss:rules --*/
+
+.reveal p {
+  font-size: 1.8rem;
+}
+
+.reveal ul li, .reveal ol li {
+  font-size: 1.8rem;
+}
